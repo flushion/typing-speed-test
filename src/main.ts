@@ -6,14 +6,11 @@ import { toast } from './utils/toast.ts';
 /**
  * @interface IData
  * @description Interface representing the structure of data to display information on the page.
- * @property {string} label - The name of the metric.
- * @property {string | number} value - The value of the metric.
- * @property {string} data - The type of data.
  */
 interface IData {
-  label: string,
-  value: string | number,
-  data: string
+  label: string;
+  value: string | number;
+  data: string;
 }
 
 const data: IData[] = [
@@ -25,29 +22,25 @@ const data: IData[] = [
 
 /**
  * @class TypingSpeed
- * @description The TypingSpeed class represents a typing speed test and manages its functionality.
+ * @description Represents a typing speed test with core functionality.
  */
 class TypingSpeed {
   private mock: string[] = mock;
   private timer: number | null = null;
   private maxTime: number = 60;
-  private timeLeft: number = 0;
+  private timeLeft: number = 60;
   private charIndex: number = 0;
   private mistakes: number = 0;
-  private isTyping: number = 0;
+  private isTyping: boolean = false;
 
-  private typing: HTMLParagraphElement;
-  private inputTyping: HTMLInputElement;
-  private btnReset: HTMLButtonElement;
-  private optionTime: HTMLSpanElement;
-  private optionMistake: HTMLSpanElement;
-  private optionWpm: HTMLSpanElement;
-  private optionCpm: HTMLSpanElement;
+  private typing!: HTMLParagraphElement;
+  private inputTyping!: HTMLInputElement;
+  private btnReset!: HTMLButtonElement;
+  private optionTime!: HTMLSpanElement;
+  private optionMistake!: HTMLSpanElement;
+  private optionWpm!: HTMLSpanElement;
+  private optionCpm!: HTMLSpanElement;
 
-  /**
-   * @constructor
-   * @description Constructor of the TypingSpeed class. Calls the initialize() method to set up the components.
-   */
   constructor() {
     this.initialize();
   }
@@ -77,12 +70,16 @@ class TypingSpeed {
         <input class='visually-hidden' type='text' data-input>
         <p class='p-1 rounded border tracking-widest\t' data-typing></p>
         <ul class='grid gap-2 grid-cols-4'>
-          ${data.map(({ label, value, data }) => `
+          ${data
+            .map(
+              ({ label, value, data }) => `
             <li class='grid gap-1.5'>
               <p class='font-medium'>${label}:</p>
               <span class='p-1 bg-gray-200 rounded' data-${data}>${value}</span>
             </li>
-          `).join('')}
+          `
+            )
+            .join('')}
         </ul>
         <button class='px-3 py-2 border hover:bg-slate-50' data-reset>Try Again</button>
       </div>
@@ -100,7 +97,7 @@ class TypingSpeed {
   /**
    * @private
    * @method setupEventListeners
-   * @description Sets up event listeners.
+   * @description Sets up event listeners for user interactions.
    */
   private setupEventListeners(): void {
     this.init();
@@ -111,44 +108,42 @@ class TypingSpeed {
   /**
    * @private
    * @method init
-   * @description Initializes the test by loading text for typing and setting initial values.
+   * @description Loads the typing text and resets metrics.
    */
   private async init(): Promise<void> {
     try {
       this.typing.innerHTML = '<h4>Loading...</h4>';
-      const {
-        data: {
-          0: text,
-        },
-      } = await axios.get('https://baconipsum.com/api/?type=all-meat&sentences=4&format=json');
+      const response = await axios.get('https://baconipsum.com/api/?type=all-meat&sentences=4&format=json');
+      const text = response.data[0] || this.mock[Math.floor(Math.random() * this.mock.length)];
       this.typing.innerHTML = '';
-      const paragraph = text || this.mock[Math.floor(Math.random() * this.mock.length)];
-      paragraph.split('').forEach((char, idx) => this.typing.innerHTML += `<span class='${idx === 0 ? 'active border-b-2 border-orange-500 text-orange-500' : ''}'>${char}</span>`);
+      text.split('').forEach((char: string, idx: number) => {
+        this.typing.innerHTML += `<span class='${idx === 0 ? 'active border-b-2 border-orange-500 text-orange-500' : ''}'>${char}</span>`;
+      });
       this.typing.addEventListener('click', () => this.inputTyping.focus());
       document.addEventListener('keydown', () => this.inputTyping.focus());
     } catch (e) {
-      console.log(e);
+      console.error(e);
       toast('Something went wrong, open dev console', 'error');
     }
   }
-  
 
   /**
    * @private
    * @method handleInput
-   * @param {string} value - The text entered by the user.
-   * @description Handles user input and tracks metrics.
+   * @description Processes user input and updates metrics.
    */
-  private handleInput({ target: { value } }: { target: { value: string } }): void {
+  private handleInput(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
     const characters = this.typing.querySelectorAll('span');
-    const typedChar = value.split('')[this.charIndex];
+    const typedChar = value[this.charIndex];
 
     if (this.charIndex < characters.length - 1 && this.timeLeft > 0) {
       if (!this.isTyping) {
-        this.timer = setInterval(this.initialTimer.bind(this), 1000);
+        this.timer = setInterval(this.updateTimer.bind(this), 1000);
         this.isTyping = true;
       }
-      if (typedChar === null) {
+      if (typedChar == null) {
         if (this.charIndex > 0) {
           this.charIndex--;
           if (characters[this.charIndex].classList.contains('incorrect')) {
@@ -166,14 +161,14 @@ class TypingSpeed {
         this.charIndex++;
       }
       characters.forEach(span => span.classList.remove('active'));
-      characters[this.charIndex].classList.add('active', 'border-b');
-      let wpm = Math.round(((this.charIndex - this.mistakes) / 5) / (this.maxTime - this.timeLeft) * 60);
-      this.optionWpm.innerText = String(wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm);
+      characters[this.charIndex]?.classList.add('active', 'border-b');
+
+      const wpm = Math.round(((this.charIndex - this.mistakes) / 5) / (this.maxTime - this.timeLeft) * 60);
+      this.optionWpm.innerText = String(Math.max(0, wpm));
       this.optionMistake.innerText = String(this.mistakes);
       this.optionCpm.innerText = String(this.charIndex - this.mistakes);
-
     } else {
-      clearInterval(this.timer);
+      clearInterval(this.timer!);
       this.inputTyping.value = '';
     }
   }
@@ -181,30 +176,32 @@ class TypingSpeed {
   /**
    * @private
    * @method handleReset
-   * @description Resets the test to its initial values.
+   * @description Resets the test to its initial state.
    */
   private handleReset(): void {
+    clearInterval(this.timer!);
     this.init();
-    clearInterval(this.timer);
     this.timeLeft = this.maxTime;
-    this.charIndex = this.mistakes = this.isTyping = 0;
+    this.charIndex = this.mistakes = 0;
+    this.isTyping = false;
     this.inputTyping.value = '';
     this.optionTime.innerText = String(this.timeLeft);
-    this.optionWpm.innerText = String(this.optionMistake.innerText = String(this.optionCpm.innerText = String(0)));
+    this.optionWpm.innerText = this.optionMistake.innerText = this.optionCpm.innerText = '0';
   }
 
   /**
    * @private
-   * @method initialTimer
-   * @description Countdown timer for the test and updates WPM metrics.
+   * @method updateTimer
+   * @description Updates the timer and WPM during the test.
    */
-  private initialTimer(): void {
+  private updateTimer(): void {
     if (this.timeLeft > 0) {
       this.timeLeft--;
       this.optionTime.innerText = String(this.timeLeft);
-      this.optionWpm.innerText = String(Math.round(((this.charIndex - this.mistakes) / 5) / (this.maxTime - this.timeLeft) * 60));
+      const wpm = Math.round(((this.charIndex - this.mistakes) / 5) / (this.maxTime - this.timeLeft) * 60);
+      this.optionWpm.innerText = String(Math.max(0, wpm));
     } else {
-      clearInterval(this.timer);
+      clearInterval(this.timer!);
     }
   }
 }
