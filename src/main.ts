@@ -118,13 +118,12 @@ class TypingSpeed {
       this.typing.innerHTML = '<h4>Loading...</h4>';
       const {
         data: {
-          status,
-          text,
+          0: text,
         },
-      } = await axios.get('https://fish-text.ru/get?format=json&type=sentence&number=4&self=true');
+      } = await axios.get('https://baconipsum.com/api/?type=all-meat&sentences=4&format=json');
       this.typing.innerHTML = '';
-      const paragraph = status !== 'success' ? this.mock[Math.floor(Math.random() * this.mock.length)] : text;
-      paragraph.split('').forEach((char, idx) => this.typing.innerHTML += `<span class=' ${idx === 0 ? 'active border-b-2 border-orange-500 text-orange-500' : ''}'>${char}</span>`);
+      const paragraph = text || this.mock[Math.floor(Math.random() * this.mock.length)];
+      paragraph.split('').forEach((char, idx) => this.typing.innerHTML += `<span class='${idx === 0 ? 'active border-b-2 border-orange-500 text-orange-500' : ''}'>${char}</span>`);
       this.typing.addEventListener('click', () => this.inputTyping.focus());
       document.addEventListener('keydown', () => this.inputTyping.focus());
     } catch (e) {
@@ -132,6 +131,7 @@ class TypingSpeed {
       toast('Something went wrong, open dev console', 'error');
     }
   }
+  
 
   /**
    * @private
